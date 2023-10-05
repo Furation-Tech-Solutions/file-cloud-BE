@@ -17,7 +17,7 @@ const {
     resetPassword
     } = require('../controllers/User');
 
-// const { isAuthenticated } = require('../middlewares/auth');
+const { isAuthenticated } = require('../middlewares/auth');
 
 router.route('/register').post(Register)
 
@@ -25,15 +25,15 @@ router.route('/login').post(Login);
 
 router.route('/logout').get(logOut);
 
-router.route('/update/password').put( updatePassword);
+router.route('/update/password').put( isAuthenticated, updatePassword);
 
-router.route('/update/profile').put(updateProfile);
+router.route('/update/profile').put( isAuthenticated, updateProfile);
 
-router.route('/delete/me').delete( deleteProfile);
+router.route('/delete/me').delete( isAuthenticated,  deleteProfile);
 
-router.route('/me').get( myProfile);
+router.route('/me').get( isAuthenticated, myProfile);
 
-router.route('/user/:id').get( getUserProfile);
+router.route('/user/:id').get( isAuthenticated,  getUserProfile);
 
 router.route('/users').get(getAllUsers);
 
