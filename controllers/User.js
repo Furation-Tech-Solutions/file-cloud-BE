@@ -1,4 +1,4 @@
-const EmailService = require("../middlewares/sendEmail");
+const sendEmail = require("../middlewares/sendEmail");
 
 const User = require('../models/User');
 // const { sendEmail } = require('../middlewares/sendEmail');
