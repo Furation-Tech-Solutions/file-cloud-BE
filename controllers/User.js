@@ -1,4 +1,4 @@
-
+const EmailService = require("../middlewares/sendEmail");
 
 const User = require('../models/User');
 // const { sendEmail } = require('../middlewares/sendEmail');
@@ -7,24 +7,24 @@ const crypto = require('crypto')
 exports.Register = async (req, res) => {
 
     try {
-        
-        const {name, email, password} = req.body;
 
-        let user = await User.findOne({email});
+        const { name, email, password } = req.body;
+
+        let user = await User.findOne({ email });
 
         if (user) {
             return res
-            .status(400)
-            .json({
-                success: false,
-                massage: 'User already exits',
-            })
+                .status(400)
+                .json({
+                    success: false,
+                    massage: 'User already exits',
+                })
         }
 
-        user = await User.create({ 
-            name , 
-            email, 
-            password, 
+        user = await User.create({
+            name,
+            email,
+            password,
         });
 
         const token = await user.generateToken();
@@ -53,10 +53,12 @@ exports.Login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({email}).select('+password');
+        const user = await User.findOne({ email }).select('+password');
+
+
 
         if (!user) {
-            return res.status(400). json({
+            return res.status(400).json({
                 success: false,
                 massage: "User does not exits"
             });
@@ -94,13 +96,13 @@ exports.Login = async (req, res) => {
 
 exports.logOut = async (req, res) => {
     try {
-        
+
         res.status(200)
-        .cookie("token", null, {expires: new Date(Date.now()), httpOnly: true})
-        .json({
-            success: true,
-            massage: "Logged Out",
-        })
+            .cookie("token", null, { expires: new Date(Date.now()), httpOnly: true })
+            .json({
+                success: true,
+                massage: "Logged Out",
+            })
 
     } catch (error) {
         res.status(500).json({
@@ -111,9 +113,9 @@ exports.logOut = async (req, res) => {
 }
 
 
-exports.updatePassword = async  (req, res) => {
+exports.updatePassword = async (req, res) => {
     try {
-        
+
         const user = await User.findById(req.user._id).select("+password")
 
         const { oldPassword, newPassword } = req.body;
@@ -151,9 +153,9 @@ exports.updatePassword = async  (req, res) => {
 }
 
 
-exports.updateProfile = async  (req, res) => {
+exports.updateProfile = async (req, res) => {
     try {
-        
+
         const user = await User.findById(req.user._id);
 
         const { name, email } = req.body;
@@ -184,15 +186,15 @@ exports.updateProfile = async  (req, res) => {
 
 exports.deleteProfile = async (req, res) => {
     try {
-        
+
         const user = await User.findById(req.user._id);
         const userId = user._id;
 
         await user.remove();
 
 
-         //after deleting user logout user
-         res.cookie("token", null,  {expires: new Date(Date.now()), httpOnly: true})     
+        //after deleting user logout user
+        res.cookie("token", null, { expires: new Date(Date.now()), httpOnly: true })
 
 
         res.status(200).json({
@@ -208,10 +210,10 @@ exports.deleteProfile = async (req, res) => {
     }
 }
 
-exports.myProfile =async (req, res) => {
+exports.myProfile = async (req, res) => {
 
     try {
-        
+
         const user = await User.findById(req.user._id)
 
         res.status(200).json({
@@ -229,8 +231,7 @@ exports.myProfile =async (req, res) => {
 
 exports.getUserProfile = async (req, res) => {
     try {
-        
-        const user = await User.findById(req.params.id)
+        const user = await User.findOne({ _id: req.params.id })
 
         if (!user) {
             return res.status(404).json({
@@ -238,6 +239,11 @@ exports.getUserProfile = async (req, res) => {
                 message: "User not found",
             })
         }
+
+        res.status(200).json({
+            success: true,
+            user,
+        });
 
     } catch (error) {
         res.status(500).json({
@@ -249,7 +255,7 @@ exports.getUserProfile = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
     try {
-        
+
         const users = await User.find({});
 
         res.status(200).json({
@@ -257,7 +263,7 @@ exports.getAllUsers = async (req, res) => {
             users,
         })
 
-        }  catch (error) {
+    } catch (error) {
         res.status(500).json({
             success: false,
             massage: error.massage,
@@ -266,9 +272,12 @@ exports.getAllUsers = async (req, res) => {
 }
 
 exports.forgetPassword = async (req, res) => {
+
     try {
-        
-        const user = await User.findOne({email:req.body.email});
+
+        const user = await User.findOne({ email: req.body.email });
+
+
 
         if (!user) {
             return res.status(404).json({
@@ -279,40 +288,64 @@ exports.forgetPassword = async (req, res) => {
 
         const resetPasswordToken = user.getResetPasswordToken();
 
+
         await user.save();
+
 
         const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/password/reset/${resetPasswordToken}`;
 
+
         const message = `Reset Your Password by clicking on the link below: \n\n ${resetUrl}`;
 
+        // try {
+
+        //     await sendEmail({
+        //         email: user.email,
+        //         subject: "Reset Password",
+        //         message,
+        //     });
+
+        //     res.status(200).json({
+        //         success: true,
+        //         message: `Email sent to ${user.email}`,
+        //     })
+
+        // } catch (error) {
+
+        //     user.resetPasswordToken = undefined;
+        //     user.resetPasswordExpire = undefined;
+
+        //     await user.save();
+
+        //     res.status(500).json({
+        //         success: false,
+        //         massage: error.massage,
+        //     })
+
+        // }
+
+        const emailService = new EmailService();
+
+    
+
         try {
-            
-            await sendEmail({
+            await emailService.sendEmail({
                 email: user.email,
-                subject: "Reset Password",
-                message,
+                subject: "Password Reset Link",
+                text: message,
             });
-
-            res.status(200).json({
-                success: true,
-                message: `Email sent to ${user.email}`,
-            })
-
         } catch (error) {
-            
             user.resetPasswordToken = undefined;
             user.resetPasswordExpire = undefined;
-
             await user.save();
 
             res.status(500).json({
                 success: false,
-                massage: error.massage,
-            })
-
+                message: error.message,
+            });
         }
 
-    }  catch (error) {
+    } catch (error) {
         res.status(500).json({
             success: false,
             massage: error.massage,
@@ -330,7 +363,7 @@ exports.resetPassword = async (req, res) => {
             resetPasswordExpire: { $gt: Date.now() },
         });
 
-        if(!user) {
+        if (!user) {
             return res.status(401).json({
                 success: false,
                 message: "Token is invalid or has expire",
@@ -348,14 +381,14 @@ exports.resetPassword = async (req, res) => {
             success: true,
             message: 'Password reset successfully'
         })
-        
+
     } catch (error) {
 
         res.status(500).json({
             success: false,
             massage: error.massage,
         })
-        
+
     }
 }
 
