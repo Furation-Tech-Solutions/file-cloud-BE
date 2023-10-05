@@ -1,4 +1,4 @@
-const EmailService = require("../middlewares/sendEmail");
+const sendEmail = require("../middlewares/sendEmail");
 
 const User = require('../models/User');
 // const { sendEmail } = require('../middlewares/sendEmail');
@@ -297,53 +297,52 @@ exports.forgetPassword = async (req, res) => {
 
         const message = `Reset Your Password by clicking on the link below: \n\n ${resetUrl}`;
 
-        // try {
-
-        //     await sendEmail({
-        //         email: user.email,
-        //         subject: "Reset Password",
-        //         message,
-        //     });
-
-        //     res.status(200).json({
-        //         success: true,
-        //         message: `Email sent to ${user.email}`,
-        //     })
-
-        // } catch (error) {
-
-        //     user.resetPasswordToken = undefined;
-        //     user.resetPasswordExpire = undefined;
-
-        //     await user.save();
-
-        //     res.status(500).json({
-        //         success: false,
-        //         massage: error.massage,
-        //     })
-
-        // }
-
-        const emailService = new EmailService();
-
-    
-
         try {
-            await emailService.sendEmail({
-                email: user.email,
-                subject: "Password Reset Link",
-                text: message,
+
+            await sendEmail({
+                email: `${user.email}`,
+                subject: "Reset Password",
+                message:message ,
             });
+
+            res.status(200).json({
+                success: true,
+                message: `Email sent to ${user.email}`,
+            })
+
         } catch (error) {
+
             user.resetPasswordToken = undefined;
             user.resetPasswordExpire = undefined;
+
             await user.save();
 
             res.status(500).json({
                 success: false,
-                message: error.message,
-            });
+                massage: error.massage,
+            })
         }
+
+        // const emailService = new EmailService();
+
+    
+
+        // try {
+        //     await emailService.sendEmail({
+        //         email: user.email,
+        //         subject: "Password Reset Link",
+        //         text: message,
+        //     });
+        // } catch (error) {
+        //     user.resetPasswordToken = undefined;
+        //     user.resetPasswordExpire = undefined;
+        //     await user.save();
+
+        //     res.status(500).json({
+        //         success: false,
+        //         message: error.message,
+        //     });
+        // }
 
     } catch (error) {
         res.status(500).json({
