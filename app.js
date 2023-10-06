@@ -12,9 +12,12 @@ app.use(cors())
 
 
 const user = require('./routes/User');
+const storage = require('./routes/Storage.router')
 
 // use Routes
 
 app.use('/api/v1', user);
+app.use('/api/v1/storage', storage);
+
 
 module.exports = app

@@ -1,0 +1,50 @@
+name: Project Gorge
+run-name: ${{ github.actor }} has triggered the workflow
+on:
+  push:
+    branches:
+      - "feature/deploy"
+    # pull_request:
+    #     types:
+    #         - closed
+    #     branches:
+    #         - main
+
+jobs:
+    deploy:
+        name: deploy backend
+        runs-on: ubuntu-20.04
+        steps:
+            - uses: actions/checkout@v4
+            - name: Configure aws client
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: ap-south-1
+            - uses: actions/setup-node@v3
+              with:
+                node-version: "18"
+                cache: "npm"
+            - run: npm install
+            - name: Execute application build Script
+              run: npm run build
+            - name: Create code bundle for deployment
+              run: zip code-bundle.zip -r ./controllers ./db ./middlewares ./models ./routes ./app.js ./server.js .env package.json package-lock.json Procfile .ebignore .gitignore
+            - name: list files in dir
+              run: ls .
+            - name: Copy code bundle to s3 bucket for code
+              run: aws s3 cp code-bundle.zip s3://gorge-ebs-deploy-bucket/code-bundle.zip
+            - name: create new ElasticBeanstalk Application version
+              run: |
+                aws elasticbeanstalk create-application-version \
+                --application-name gorge \
+                --source-bundle S3Bucket="gorge-ebs-deploy-bucket",S3Key="code-bundle.zip" \
+                --version-label "${{github.sha}}" \
+                --description "commit-sha-${{github.sha}}"
+            - name: Deploy new ElasticBeanstalk Application Version
+              run: |
+                aws elasticbeanstalk update-environment --environment-name Gorge-Prod --version-label "${{github.sha}}"
+            - name: Success
+              run : |
+                echo "Successfull"
